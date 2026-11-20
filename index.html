@@ -26,7 +26,7 @@
     [hidden] { display: none !important; }
     .frame { width: min(1160px, calc(100% - clamp(32px, 10vw, 160px))); margin-inline: auto; }
     header { border-bottom: 1px solid var(--line); }
-    .bar { display: flex; align-items: center; justify-content: space-between; height: 76px; }
+    .bar { display: flex; align-items: center; justify-content: space-between; height: 76px; position: relative; }
     /* Three parallel slices of an isometric block, drawn from back to front. */
     .prism-mark { position: relative; width: 46px; height: 44px; flex: none; }
     .prism-slice {
@@ -52,6 +52,15 @@
     .icon-button:hover, .outline-button:hover { background: #202020; border-color: #999; }
     .menu-glyph { width: 18px; height: 12px; border-block: 1.5px solid currentColor; position: relative; }
     .menu-glyph::before { content: ""; position: absolute; left: 0; right: 0; top: 4px; border-top: 1.5px solid; }
+    .key-cue {
+      position: absolute; right: 0; top: 60px; z-index: 2; width: 160px; pointer-events: none;
+      color: #e8e8e8; display: flex; flex-direction: column; align-items: flex-end;
+    }
+    .key-cue span {
+      font-size: 13px; font-weight: 500; line-height: 1.3;
+    }
+    .key-cue svg { width: 20px; height: 28px; margin-right: 12px; }
+    .key-cue path { fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
     main { padding-block: clamp(32px, 6vh, 70px) 48px; }
     h1 { font-size: clamp(42px, 6.1vw, 78px); font-weight: 500; line-height: 1; letter-spacing: -.065em; margin-bottom: 32px; }
     .conversation { border: 1px solid var(--line); background: #080808; }
@@ -128,6 +137,7 @@
     pre { white-space: pre-wrap; overflow-wrap: anywhere; padding: 16px; margin-top: 14px; line-height: 1.5; background: #151515; border: 1px solid var(--line); font-size: 13px; }
     @media (max-width: 600px) {
       .bar { height: 64px; }
+      .key-cue { top: 54px; }
       h1 { margin-bottom: 24px; }
       .conversation-head { gap: 8px 16px; }
       .transcript { height: clamp(210px, 32dvh, 300px); }
@@ -147,6 +157,12 @@
         <span class="prism-slice"></span>
         <span class="prism-slice"></span>
         <span class="prism-slice"></span>
+      </div>
+      <div class="key-cue" id="key-cue" aria-hidden="true">
+        <svg viewBox="0 0 20 28" aria-hidden="true">
+          <path d="M10 26 V2 M5 7 L10 2 L15 7"></path>
+        </svg>
+        <span>Add API key here</span>
       </div>
       <button class="icon-button" id="menu" type="button" aria-label="Open settings menu" title="Open settings menu" aria-haspopup="dialog" aria-controls="drawer" aria-expanded="false"><span class="menu-glyph" aria-hidden="true"></span></button>
     </div>
@@ -191,6 +207,7 @@
           <label for="key">Groq API key</label>
           <input type="password" id="key" placeholder="Paste your Groq API key" autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="key-help key-status" required>
           <button class="primary" id="add-key" type="submit">Add key for this session</button>
+          <button class="outline-button" id="remove-key" type="button" hidden>Remove key from this session</button>
           <p class="feedback" id="key-status" role="status"></p>
           <p class="helper" id="key-help">Your key goes directly to Groq. Reloading or closing this page clears it.</p>
         </form>
@@ -228,6 +245,7 @@
     const drawer = byId('drawer');
     const menu = byId('menu');
     const model = byId('model');
+    const keyCue = byId('key-cue');
     const key = byId('key');
     const promptBox = byId('prompt');
     const status = byId('status');
@@ -299,7 +317,9 @@
     function refreshComposer() {
       byId('send').disabled = busy || checkingKey || !promptBox.value.trim() || !sessionKey;
       byId('add-key').disabled = busy || checkingKey;
+      byId('remove-key').hidden = !sessionKey;
       key.readOnly = checkingKey;
+      keyCue.hidden = Boolean(sessionKey);
       byId('welcome').textContent = sessionKey
         ? 'Write your first message below.'
         : 'Open the menu to add your Groq API key.';
@@ -351,6 +371,16 @@
         checkingKey = false;
         refreshComposer();
       }
+    });
+
+    byId('remove-key').addEventListener('click', () => {
+      sessionKey = '';
+      key.value = '';
+      key.placeholder = 'Paste your Groq API key';
+      byId('key-status').textContent = 'Session key removed.';
+      status.textContent = 'Add a key to send a message.';
+      refreshComposer();
+      key.focus();
     });
 
     function refreshSettings() {
